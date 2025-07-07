@@ -105,3 +105,86 @@ const counterB = makeCounter();
 counterA(); // ✅ 1
 counterA(); // ✅ 2
 counterB(); // ✅ 1（独立闭包）
+
+//this issue
+// ✅ this 指向判断练习总结（含题目 + 正确答案 + 注释解释）
+
+// ----------------------------
+// Q1: 箭头函数在对象中定义
+// ----------------------------
+const user = {
+  name: "John",
+  greet: () => {
+    console.log("Q1:", this.name); // ❌ this 是 globalThis → undefined
+  },
+};
+user.greet(); // 输出：undefined
+
+// ----------------------------
+// Q2: 普通函数 this 丢失
+// ----------------------------
+const person = {
+  name: "Alice",
+  sayHi() {
+    console.log("Q2:", this.name); // this 预期为 person
+  },
+};
+const say = person.sayHi;
+say(); // 输出：undefined（裸调用 → this = globalThis）
+
+// ----------------------------
+// Q3: bind 修复 this
+// ----------------------------
+const obj = {
+  count: 42,
+  start() {
+    setTimeout(
+      function () {
+        console.log("Q3:", this.count); // ✅ this = obj（通过 bind 绑定）
+      }.bind(this),
+      100
+    );
+  },
+};
+obj.start(); // 输出：42
+
+// ----------------------------
+// Q4: 构造函数中普通函数 vs 箭头函数
+// ----------------------------
+function Timer(this: any) {
+  this.seconds = 0;
+
+  setInterval(function () {
+    this.seconds++;
+    console.log("Q4 (normal):", this.seconds); // ❌ this = globalThis → NaN or error
+  }, 1000);
+
+  setInterval(() => {
+    this.seconds++;
+    console.log("Q4 (arrow):", this.seconds); // ✅ this = Timer 实例 → 每秒递增
+  }, 1000);
+}
+
+const timer = new (Timer as any)();
+
+// ----------------------------
+// Q5: class 中的普通方法 vs 箭头函数
+// ----------------------------
+class Logger {
+  prefix = "Log:";
+
+  print1() {
+    console.log("Q5.1:", this.prefix); // ❌ this 丢失时为 undefined
+  }
+
+  print2 = () => {
+    console.log("Q5.2:", this.prefix); // ✅ this 保留为实例对象
+  };
+}
+
+const logger = new Logger();
+const f1 = logger.print1;
+const f2 = logger.print2;
+
+f1(); // 输出：undefined（裸调用，this 丢失）
+f2(); // 输出：Log:（箭头函数保留 this）
